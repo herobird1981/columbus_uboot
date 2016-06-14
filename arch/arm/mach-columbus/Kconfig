@@ -1,0 +1,17 @@
+if ARCH_COLUMBUS
+
+config TARGET_CB_FPGA
+	bool "Columbus FPGA board"
+
+config SYS_MALLOC_F
+	default y
+
+config SPL_SYS_MALLOC_SIMPLE
+	default y
+
+config DM_SERIAL
+	default y
+
+source "board/columbus/cb_fpga/Kconfig"
+
+endif

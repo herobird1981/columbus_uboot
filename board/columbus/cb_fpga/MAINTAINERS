@@ -1,0 +1,6 @@
+COLUMBUS BOARD
+M : Volans Guo <volans.guo@britesemi.com>
+S : Maintained
+F : board /columbus/cb_fpga
+F : include /configs/cb_fpga.h
+F : configs /cb_fpga_defconfig

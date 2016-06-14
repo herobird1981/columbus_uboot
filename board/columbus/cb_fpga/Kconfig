@@ -1,0 +1,12 @@
+if TARGET_CB_FPGA
+
+config SYS_BOARD
+	default "cb_fpga"
+
+config SYS_VENDOR
+	default "columbus"
+
+config SYS_CONFIG_NAME
+	default "cb_fpga"
+
+endif

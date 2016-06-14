@@ -77,6 +77,10 @@ choice
 	prompt "Target select"
 	default TARGET_HIKEY
 
+config ARCH_COLUMBUS
+	bool "Support Columbus"
+	select CPU_V7
+
 config ARCH_AT91
 	bool "Atmel AT91"
 
@@ -727,6 +731,8 @@ endchoice
 source "arch/arm/mach-at91/Kconfig"
 
 source "arch/arm/mach-bcm283x/Kconfig"
+
+source "arch/arm/mach-columbus/Kconfig"
 
 source "arch/arm/mach-davinci/Kconfig"
 
