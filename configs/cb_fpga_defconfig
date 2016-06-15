@@ -159,7 +159,7 @@ CONFIG_SYS_MALLOC_F_LEN=0x400
 #
 # CONFIG_DEBUG_LL is not set
 # CONFIG_DM_KEYBOARD is not set
-CONFIG_DEFAULT_DEVICE_TREE="columbus_fpga"
+CONFIG_DEFAULT_DEVICE_TREE="columbus-fpga"
 
 #
 # General setup
