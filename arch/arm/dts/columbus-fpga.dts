@@ -15,13 +15,13 @@
 
 	memory {
 		device_type = "memory";
-		reg = <0x08000000 0x10000000>;
+		reg = <0x80000000 0x10000000>;
 	};
 
 	chosen {
 		stdout-path = &uart0;
 		tick-timer = &timer0;
-		bootargs = "console=ttyS0,115200 earlyprintk";
+		bootargs = "console=ttyS0,115200 earlyprintk rdinit=/init clk_ignore_unused";
 	};
 
 

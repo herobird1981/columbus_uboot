@@ -54,6 +54,23 @@
 		    };
 		};
 
+		clocks {
+			dummy_clk: clock@4 {
+				compatible = "vul,dummy", "fixed-clock";
+				#clock-cells = <0>;
+				clock-names = "dummy_clk";
+				clock-output-names = "dummy_clk";
+				clock-frequency = <0>;
+			};
+			apb_pclk: clock@5 {
+				compatible = "fixed-clock";
+				#clock-cells = <0>;
+				clock-names = "apb_pclk";
+				clock-output-names = "apb_pclk";
+				clock-frequency = <0>;
+			};
+		};
+		
 		intc: interrupt-controller@f8f01000 {
 			compatible = "arm,cortex-a9-gic";
 			#interrupt-cells = <3>;
@@ -62,19 +79,19 @@
 				<0xF8F00100 0x100>;
 		};
 
-		uart0: serial@0x50000000 {
+		uart0: serial@0x71D00000 {
 			compatible = "snps,dw-apb-uart";
-			reg = <0x50000000 0x400>;
+			reg = <0x71D00000 0x400>;
 			reg-shift = <2>;
 			reg-io-width = <4>;
 			clock-frequency = <50000000>;
-			interrupts = <0 61 4>;
+			interrupts = <0 59 4>;
 			status = "disabled";
 		};
 
-		timer0: timer@0x52002000 {
+		timer0: timer@0x50001000 {
 			compatible = "brite,timer";
-			reg = <0x52002000 0x1000>;
+			reg = <0x50001000 0x1000>;
 			clock = <50000000>;
 			status = "disabled";
 		};
