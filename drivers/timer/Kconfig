@@ -46,4 +46,10 @@ config OMAP_TIMER
 	help
 	  Select this to enable an timer for Omap devices.
 
+config COLUMBUS_TIMER
+        bool "Columbus timer support"
+        depends on TIMER
+        help
+          Select this to enable an timer for Columbus Platform.
+
 endmenu

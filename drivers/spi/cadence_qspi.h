@@ -19,6 +19,7 @@ struct cadence_spi_platdata {
 	void		*regbase;
 	void		*ahbbase;
 
+	u32		ref_clk;
 	u32		page_size;
 	u32		block_size;
 	u32		tshsl_ns;

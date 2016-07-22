@@ -298,6 +298,8 @@ static int cadence_spi_ofdata_to_platdata(struct udevice *bus)
 	plat->regbase = (void *)data[0];
 	plat->ahbbase = (void *)data[2];
 
+	plat->ref_clk = fdtdec_get_uint(blob,node,"ref-clk",DEFAULT_PCLK);
+
 	/* All other paramters are embedded in the child node */
 	subnode = fdt_first_subnode(blob, node);
 	if (subnode < 0) {

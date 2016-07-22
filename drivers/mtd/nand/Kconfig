@@ -12,6 +12,11 @@ config NAND_DENALI
 	help
 	  Enable support for the Denali NAND controller.
 
+config NAND_BRITE
+	bool "Support Brite NAND controller"
+	help
+	  Enable support for the Brite NAND controller.
+
 config SYS_NAND_DENALI_64BIT
 	bool "Use 64-bit variant of Denali NAND controller"
 	depends on NAND_DENALI

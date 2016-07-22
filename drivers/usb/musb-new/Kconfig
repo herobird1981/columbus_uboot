@@ -23,4 +23,11 @@ config USB_MUSB_SUNXI
 	Say y here to enable support for the sunxi OTG / DRC USB controller
 	used on almost all sunxi boards.
 
+config USB_MUSB_COLUMBUS
+        bool "Enable Columbus OTG / DRC USB controller"
+        depends on ARCH_COLUMBUS
+        default y
+        ---help---
+	Say y here to enable support for the columbus OTG / DRC USB controller.
+
 endif

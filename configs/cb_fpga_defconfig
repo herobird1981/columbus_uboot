@@ -150,7 +150,8 @@ CONFIG_SYS_MALLOC_F=y
 CONFIG_SPL_SYS_MALLOC_SIMPLE=y
 CONFIG_DM_SERIAL=y
 CONFIG_SYS_MALLOC_F_LEN=0x400
-# CONFIG_DM_SPI is not set
+CONFIG_DM_SPI=y
+CONFIG_DM_SPI_FLASH=y
 # CONFIG_DM_I2C is not set
 # CONFIG_DM_GPIO is not set
 
@@ -248,8 +249,8 @@ CONFIG_CMD_DM=y
 # CONFIG_CMD_LOADB is not set
 # CONFIG_CMD_LOADS is not set
 # CONFIG_CMD_FLASH is not set
-# CONFIG_CMD_NAND is not set
-# CONFIG_CMD_SF is not set
+CONFIG_CMD_NAND=y
+CONFIG_CMD_SF=y
 # CONFIG_CMD_SPI is not set
 # CONFIG_CMD_I2C is not set
 # CONFIG_CMD_USB is not set
@@ -271,20 +272,20 @@ CONFIG_CMD_NET=y
 # CONFIG_CMD_TFTPPUT is not set
 # CONFIG_CMD_TFTPSRV is not set
 # CONFIG_CMD_RARP is not set
-# CONFIG_CMD_DHCP is not set
+CONFIG_CMD_DHCP=y
 # CONFIG_CMD_NFS is not set
-# CONFIG_CMD_PING is not set
+CONFIG_CMD_PING=y
 # CONFIG_CMD_CDP is not set
 # CONFIG_CMD_SNTP is not set
-# CONFIG_CMD_DNS is not set
+CONFIG_CMD_DNS=y
 # CONFIG_CMD_LINK_LOCAL is not set
 
 #
 # Misc commands
 #
-# CONFIG_CMD_TIME is not set
+CONFIG_CMD_TIME=y
 CONFIG_CMD_MISC=y
-# CONFIG_CMD_TIMER is not set
+CONFIG_CMD_TIMER=y
 
 #
 # Power commands
@@ -396,12 +397,15 @@ CONFIG_OF_TRANSLATE=y
 #
 # MTD Support
 #
-# CONFIG_MTD is not set
+CONFIG_MTD=y
+# CONFIG_CFI_FLASH is not set
+# CONFIG_ALTERA_QSPI is not set
 
 #
 # NAND Device Support
 #
 # CONFIG_NAND_DENALI is not set
+CONFIG_NAND_BRITE=y
 # CONFIG_NAND_VF610_NFC is not set
 # CONFIG_NAND_PXA3XX is not set
 # CONFIG_NAND_ARASAN is not set
@@ -413,7 +417,19 @@ CONFIG_OF_TRANSLATE=y
 #
 # SPI Flash Support
 #
-# CONFIG_SPI_FLASH is not set
+CONFIG_SPI_FLASH=y
+# CONFIG_SPI_FLASH_BAR is not set
+# CONFIG_SPI_FLASH_ATMEL is not set
+# CONFIG_SPI_FLASH_EON is not set
+CONFIG_SPI_FLASH_GIGADEVICE=y
+# CONFIG_SPI_FLASH_MACRONIX is not set
+# CONFIG_SPI_FLASH_SPANSION is not set
+# CONFIG_SPI_FLASH_STMICRO is not set
+# CONFIG_SPI_FLASH_SST is not set
+# CONFIG_SPI_FLASH_WINBOND is not set
+CONFIG_SPI_FLASH_USE_4K_SECTORS=y
+# CONFIG_SPI_FLASH_DATAFLASH is not set
+# CONFIG_SPI_FLASH_MTD is not set
 # CONFIG_DM_ETH is not set
 # CONFIG_PHYLIB is not set
 # CONFIG_NETDEVICES is not set
@@ -480,6 +496,19 @@ CONFIG_SYS_NS16550=y
 #
 # SPI Support
 #
+# CONFIG_ALTERA_SPI is not set
+CONFIG_CADENCE_QSPI=y
+# CONFIG_DESIGNWARE_SPI is not set
+# CONFIG_EXYNOS_SPI is not set
+# CONFIG_FSL_DSPI is not set
+# CONFIG_FSL_QSPI is not set
+# CONFIG_ICH_SPI is not set
+# CONFIG_ROCKCHIP_SPI is not set
+# CONFIG_TEGRA114_SPI is not set
+# CONFIG_TEGRA20_SFLASH is not set
+# CONFIG_TEGRA20_SLINK is not set
+# CONFIG_TEGRA210_QSPI is not set
+# CONFIG_XILINX_SPI is not set
 # CONFIG_FSL_ESPI is not set
 # CONFIG_TI_QSPI is not set
 # CONFIG_DM_THERMAL is not set
@@ -487,12 +516,39 @@ CONFIG_SYS_NS16550=y
 #
 # Timer Support
 #
-# CONFIG_TIMER is not set
+CONFIG_TIMER=y
+# CONFIG_TIMER_EARLY is not set
+# CONFIG_ALTERA_TIMER is not set
+# CONFIG_OMAP_TIMER is not set
+CONFIG_COLUMBUS_TIMER=y
 
 #
 # TPM support
 #
-# CONFIG_USB is not set
+CONFIG_USB=y
+CONFIG_DM_USB=y
+
+#
+# USB Host Controller Drivers
+#
+# CONFIG_USB_XHCI_HCD is not set
+# CONFIG_USB_XHCI is not set
+# CONFIG_USB_OHCI_GENERIC is not set
+# CONFIG_USB_EHCI_HCD is not set
+# CONFIG_USB_EHCI is not set
+
+#
+# MUSB Controller Driver
+#
+CONFIG_USB_MUSB_HOST=y
+CONFIG_USB_MUSB_GADGET=y
+CONFIG_USB_MUSB_COLUMBUS=y
+
+#
+# USB peripherals
+#
+CONFIG_USB_STORAGE=y
+# CONFIG_USB_KEYBOARD is not set
 
 #
 # Graphics support

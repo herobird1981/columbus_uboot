@@ -89,13 +89,62 @@
 			status = "disabled";
 		};
 
-		timer0: timer@0x50001000 {
-			compatible = "brite,timer";
-			reg = <0x50001000 0x1000>;
-			clock = <50000000>;
+		timer1: timer@0x50001000 {
+			compatible = "columbus,timer";
+			reg = <0x50001000 0x28>;
+			clock-frequency = <50000000>;
+			clock-freq = <1000000>;
 			status = "disabled";
 		};
-
+		timer2: timer@0x50001040 {
+			compatible = "columbus,timer";
+			reg = <0x50001040 0x28>;
+			clock-frequency = <50000000>;
+			clock-freq = <50000000>;
+			status = "disabled";
+		};
+		timer3: timer@0x50001080 {
+			compatible = "columbus,timer";
+			reg = <0x50001080 0x28>;
+			clock-frequency = <50000000>;
+			clock-freq = <50000000>;
+			status = "disabled";
+		};
+		timer4: timer@0x500010C0 {
+			compatible = "columbus,timer";
+			reg = <0x500010C0 0x28>;
+			clock-frequency = <50000000>;
+			clock-freq = <50000000>;
+			status = "disabled";
+		};
+		timer5: timer@0x50001100 {
+			compatible = "columbus,timer";
+			reg = <0x50001100 0x28>;
+			clock-frequency = <50000000>;
+			clock-freq = <50000000>;
+			status = "disabled";
+		};
+		timer6: timer@0x50001140 {
+			compatible = "columbus,timer";
+			reg = <0x50001140 0x28>;
+			clock-frequency = <50000000>;
+			clock-freq = <50000000>;
+			status = "disabled";
+		};
+		timer7: timer@0x50001180 {
+			compatible = "columbus,timer";
+			reg = <0x50001180 0x28>;
+			clock-frequency = <50000000>;
+			clock-freq = <50000000>;
+			status = "disabled";
+		};
+		timer8: timer@0x500011C0 {
+			compatible = "columbus,timer";
+			reg = <0x500011C0 0x28>;
+			clock-frequency = <50000000>;
+			clock-freq = <50000000>;
+			status = "disabled";
+		};
 		global_timer: timer@f8f00200 {
 			compatible = "arm,cortex-a9-global-timer";
 			reg = <0xf8f00200 0x20>;
@@ -103,5 +152,41 @@
 			interrupt-parent = <&intc>;
 			clocks = <&clkc 4>;
 		};
+
+		nand: nfc@0x71500000 {
+			compatible = "candence,brite_nfc";
+			reg = <0x71500000 0x400>;
+			clock-frequency = <50000000>;
+		};
+		qspi: spi@0x71D04000 {
+                        compatible = "cadence,qspi";
+                        #address-cells = <1>;
+                        #size-cells = <0>;
+                        reg = <0x71D04000 0x1000>,
+                                <0x70000000 0x1000>;
+                        interrupts = <0 0 4>;
+                        /*clocks = <&qspi_clk>;*/
+                        ext-decoder = <0>;  /* external decoder */
+                        ref-clk = <50000000>;
+                        num-cs = <1>;
+                        fifo-depth = <128>;
+                        sram-size = <128>;
+                        bus-num = <0>;
+                        status = "disabled";
+
+                        flash0: GD25Q16@0 {
+                                #address-cells = <1>;
+                                #size-cells = <1>;
+                                compatible = "spi-flash";
+                                reg = <0>;              /* chip select */
+                                spi-max-frequency = <50000000>;
+                                page-size = <256>;
+                                block-size = <16>;      /* 2^16, 64KB */
+                                tshsl-ns = <50>;
+                                tsd2d-ns = <50>;
+                                tchsh-ns = <4>;
+                                tslch-ns = <4>;
+                        };
+                };
 	};
 };
