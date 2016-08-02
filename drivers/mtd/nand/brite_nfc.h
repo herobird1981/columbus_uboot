@@ -132,7 +132,7 @@
 #define BBM_CTRL_REG	0x74
 #define MEM_CTRL_REG	0x80
 #define MEM_CTRL_MEM_CE(CE)	(((CE) & 7) << 0)
-#define MEM_CTRL_BANK_SEL(BANK)	(((BANK) & 7) << 16)
+#define MEM_CTRL_BANK_SEL(BANK)	(1<<(8+BANK))//(((BANK) & 7) << 16)
 
 #define DATA_SIZE_REG	0x84
 #define TIMINGS_ASYN_REG	0x88

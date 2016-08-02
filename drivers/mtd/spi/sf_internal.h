@@ -64,7 +64,7 @@ enum spi_nor_option_flags {
 #define SPI_FLASH_CFI_MFR_SST		0xbf
 #define SPI_FLASH_CFI_MFR_WINBOND	0xef
 #define SPI_FLASH_CFI_MFR_ATMEL		0x1f
-
+#define SPI_NAND_MACRONIX			0xff
 /* Erase commands */
 #define CMD_ERASE_4K			0x20
 #define CMD_ERASE_32K			0x52
@@ -92,6 +92,21 @@ enum spi_nor_option_flags {
 #define CMD_READ_CONFIG			0x35
 #define CMD_FLAG_STATUS			0x70
 #define CMD_READ_EVCR			0x65
+
+#ifdef CONFIG_SPI_NAND_MACRONIX
+#define CMD_SPI_NAND_PAGE_PROGRAM		0x84
+#define CMD_SPI_NAND_QUAD_PAGE_PROGRAM		0x34
+
+#define CMD_READ_PAGE			0x13
+#define CMD_PROGRAM_EXECUTE	0x10
+#define CMD_GET_FEATURE		0x0f
+#define CMD_SET_FEATURE		0x1f
+#define SPI_NAND_FEATURE_ADDR0			0xa0
+#define SPI_NAND_FEATURE_STATUS			0xb0
+#define SPI_NAND_FEATURE_ADDR2			0xc0
+#define SPI_NAND_WP_STATUS	0x11
+
+#endif
 
 /* Bank addr access commands */
 #ifdef CONFIG_SPI_FLASH_BAR

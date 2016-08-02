@@ -49,5 +49,5 @@ static struct musb_hdrc_platform_data musb_plat = {
 
 void columbus_musb_board_init(void)
 {
-	musb_register(&musb_plat, NULL, (void *)0x71000000);
+	musb_register(&musb_plat, NULL, (void *)0x7B000000);
 }

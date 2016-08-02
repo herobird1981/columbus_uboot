@@ -30,6 +30,23 @@ static void spi_flash_addr(u32 addr, u8 *cmd)
 	cmd[3] = addr >> 0;
 }
 
+static void spi_nand_addr(u32 addr, u8 *cmd)
+{
+	/* cmd[0] is actual command */
+	cmd[1] = addr >> 8;
+	cmd[2] = addr >> 0;
+	cmd[3] = 0;
+}
+
+static void sf_addr_spi_nand(struct spi_flash *flash, u32 addr, u8* cmd)
+{
+	u32 page_addr;
+
+	page_addr = addr /flash->page_size;
+	cmd[1] = page_addr>>16;
+	cmd[2] = page_addr>>8;
+	cmd[3] = page_addr>>0;
+}
 static int read_sr(struct spi_flash *flash, u8 *rs)
 {
 	int ret;
@@ -220,6 +237,78 @@ static void spi_flash_dual(struct spi_flash *flash, u32 *addr)
 }
 #endif
 
+#ifdef CONFIG_SPI_NAND_MACRONIX
+/*this is for spi nand only*/
+static int get_feature(struct spi_flash *flash, u8 addr,u8* rs)
+{
+	struct spi_slave *spi = flash->spi;
+	int ret;
+	u8 cmd[2];
+
+	cmd[0] = CMD_GET_FEATURE;
+	cmd[1] = addr;
+	ret = spi_flash_cmd_read(spi, cmd, 2, rs, 1);
+	if (ret < 0) {
+		printf("SF: fail to get status register\n");
+		return ret;
+	}
+
+	return 0;
+}
+static int set_feature(struct spi_flash *flash, u8 addr,u8 rs)
+{
+	struct spi_slave *spi = flash->spi;
+	int ret;
+	u8 cmd[3];
+
+	cmd[0] = CMD_SET_FEATURE;
+	cmd[1] = addr;
+	cmd[2]= rs;
+	ret = spi_flash_cmd_write(spi, cmd, 1, &cmd[1], 2);
+	if (ret < 0) {
+		printf("SF: fail to set feature register\n");
+		return ret;
+	}
+
+	return 0;
+}
+
+static int mx_disable_wp(struct spi_flash *flash)
+{
+	u8 wp_status;
+	int ret;
+
+	ret = get_feature(flash, SPI_NAND_FEATURE_ADDR0,&wp_status);
+	if (ret < 0)
+		return ret;
+	printf("wp status:%x\n",wp_status);
+
+	ret =  set_feature(flash, SPI_NAND_FEATURE_ADDR0,0);
+	if (ret < 0)
+		return ret;
+
+	return ret;
+}
+
+static int mx_quad_enable(struct spi_flash *flash)
+{
+	u8 wp_status;
+	int ret;
+
+	ret = get_feature(flash, SPI_NAND_FEATURE_STATUS,&wp_status);
+	if (ret < 0)
+		return ret;
+	printf("otp status:%x\n",wp_status);
+
+	wp_status = SPI_NAND_WP_STATUS;
+	ret =  set_feature(flash, SPI_NAND_FEATURE_STATUS,wp_status);
+	if (ret < 0)
+		return ret;
+
+	return ret;
+}
+#endif
+
 static int spi_flash_sr_ready(struct spi_flash *flash)
 {
 	u8 sr;
@@ -248,6 +337,19 @@ static int spi_flash_ready(struct spi_flash *flash)
 {
 	int sr, fsr;
 
+#ifdef CONFIG_SPI_NAND_MACRONIX
+	u8 status;
+	int ret;
+
+	if (flash->spi_nand_flag) { /*spi nand*/
+		ret = get_feature(flash, SPI_NAND_FEATURE_ADDR2, &status);
+		if (ret || (status & 0x1))
+			return 0;
+		else
+			return 1;
+	}
+#endif
+	 /*spi nor*/
 	sr = spi_flash_sr_ready(flash);
 	if (sr < 0)
 		return sr;
@@ -356,7 +458,10 @@ int spi_flash_cmd_erase_ops(struct spi_flash *flash, u32 offset, size_t len)
 		if (ret < 0)
 			return ret;
 #endif
-		spi_flash_addr(erase_addr, cmd);
+		if (flash->spi_nand_flag)
+			sf_addr_spi_nand(flash, erase_addr,cmd);
+		else
+			spi_flash_addr(erase_addr, cmd);
 
 		debug("SF: erase %2x %2x %2x %2x (%x)\n", cmd[0], cmd[1],
 		      cmd[2], cmd[3], erase_addr);
@@ -383,6 +488,10 @@ int spi_flash_cmd_write_ops(struct spi_flash *flash, u32 offset,
 	size_t chunk_len, actual;
 	u8 cmd[SPI_FLASH_CMD_LEN];
 	int ret = -1;
+	unsigned long timeout = SPI_FLASH_PROG_TIMEOUT;
+	u32 woff;
+	u32 wtotal;
+	u32 wlen;
 
 	page_size = flash->page_size;
 
@@ -416,14 +525,58 @@ int spi_flash_cmd_write_ops(struct spi_flash *flash, u32 offset,
 
 		spi_flash_addr(write_addr, cmd);
 
+		ret = spi_flash_cmd_write_enable(flash);
+		if (ret < 0) {
+			debug("SF: enabling write failed\n");
+			return ret;
+		}
+
+		if (flash->spi_nand_flag) {
+			cmd[0] = flash->write_cmd;
+			wtotal = chunk_len;
+			wlen = 256;
+			woff = 0;
+			while (wtotal >0) {
+				spi_nand_addr(woff,cmd);
+				ret = spi_flash_cmd_write(spi, cmd,
+					3,
+					buf + actual+woff,
+					wlen);
+				if (ret < 0) {
+					debug("SF: write cmd failed\n");
+					return ret;
+				}
+				woff += wlen;
+				wtotal -= wlen;
+			}
+			/*program*/
+			cmd[0] =flash->spi_nand_program_cmd;
+			sf_addr_spi_nand(flash, write_addr, cmd);
+			ret = spi_flash_cmd_write(spi, cmd, SPI_FLASH_CMD_LEN, NULL, 0);
+			if (ret < 0) {
+				debug("SF: page write cmd failed\n");
+				return ret;
+			}
+		} else {
+			ret = spi_flash_cmd_write(spi, cmd,
+				SPI_FLASH_CMD_LEN,
+				buf + actual,
+				chunk_len);
+			if (ret < 0) {
+				debug("SF: write cmd failed\n");
+				return ret;
+			}
+		}
+
 		debug("SF: 0x%p => cmd = { 0x%02x 0x%02x%02x%02x } chunk_len = %zu\n",
 		      buf + actual, cmd[0], cmd[1], cmd[2], cmd[3], chunk_len);
 
-		ret = spi_flash_write_common(flash, cmd, sizeof(cmd),
-					buf + actual, chunk_len);
+		ret = spi_flash_cmd_wait_ready(flash, timeout);
 		if (ret < 0) {
-			debug("SF: write failed\n");
-			break;
+			debug("SF: write %s timed out\n",
+			      timeout == SPI_FLASH_PROG_TIMEOUT ?
+				"program" : "page erase");
+			return ret;
 		}
 
 		offset += chunk_len;
@@ -476,6 +629,8 @@ int spi_flash_cmd_read_ops(struct spi_flash *flash, u32 offset,
 	u32 remain_len, read_len, read_addr;
 	int bank_sel = 0;
 	int ret = -1;
+	size_t chunk_len,actual;
+	unsigned long byte_addr;
 
 	/* Handle memory-mapped SPI */
 	if (flash->memory_map) {
@@ -490,6 +645,43 @@ int spi_flash_cmd_read_ops(struct spi_flash *flash, u32 offset,
 		spi_release_bus(spi);
 		return 0;
 	}
+#ifdef CONFIG_SPI_NAND_MACRONIX
+	read_addr = offset;
+	cmdsz = SPI_FLASH_CMD_LEN + flash->dummy_byte;
+	cmd = calloc(1, cmdsz);
+	if (!cmd) {
+		debug("SF: Failed to allocate cmd\n");
+		return -ENOMEM;
+	}
+
+	if (flash->spi_nand_flag) {
+		for (actual = 0; actual < len; actual += chunk_len) {
+			byte_addr = read_addr % flash->page_size;
+			chunk_len = min(len - actual,
+				(size_t)(flash->page_size - byte_addr));
+
+			cmd[0] =flash->spi_nand_prefetch_cmd;
+			sf_addr_spi_nand(flash, read_addr,cmd);
+			/*page read to cache*/
+			ret = spi_flash_cmd_write(spi, cmd, SPI_FLASH_CMD_LEN, NULL, 0);
+			if (ret < 0) {
+				debug("SF: page read cmd failed\n");
+				return ret;
+			}
+
+			ret = spi_flash_cmd_wait_ready(flash, 200);
+			if (ret < 0) {
+				debug("SF: wait page read complete timeout\n");
+				return ret;
+			}
+			cmd[0] = flash->read_cmd;
+			spi_flash_addr(0, cmd);
+			ret = spi_flash_cmd_read(spi, cmd, cmdsz, data, chunk_len);
+			read_addr += chunk_len;
+			data += chunk_len;
+		}
+	}
+#else
 
 	cmdsz = SPI_FLASH_CMD_LEN + flash->dummy_byte;
 	cmd = calloc(1, cmdsz);
@@ -526,11 +718,12 @@ int spi_flash_cmd_read_ops(struct spi_flash *flash, u32 offset,
 			debug("SF: read failed\n");
 			break;
 		}
-
 		offset += read_len;
 		len -= read_len;
 		data += read_len;
+
 	}
+#endif
 
 	free(cmd);
 	return ret;
@@ -838,7 +1031,6 @@ int stm_unlock(struct spi_flash *flash, u32 ofs, size_t len)
 }
 #endif
 
-
 #ifdef CONFIG_SPI_FLASH_MACRONIX
 static int macronix_quad_enable(struct spi_flash *flash)
 {
@@ -930,6 +1122,10 @@ static int set_quad_mode(struct spi_flash *flash, u8 idcode0)
 	case SPI_FLASH_CFI_MFR_MACRONIX:
 		return macronix_quad_enable(flash);
 #endif
+#ifdef CONFIG_SPI_NAND_MACRONIX
+	case SPI_NAND_MACRONIX:
+		return mx_quad_enable(flash);
+#endif
 #if defined(CONFIG_SPI_FLASH_SPANSION) || defined(CONFIG_SPI_FLASH_WINBOND)
 	case SPI_FLASH_CFI_MFR_SPANSION:
 	case SPI_FLASH_CFI_MFR_WINBOND:
@@ -1019,12 +1215,21 @@ int spi_flash_scan(struct spi_flash *flash)
 		       idcode[0], jedec, ext_jedec);
 		return -EPROTONOSUPPORT;
 	}
+#ifdef CONFIG_SPI_NAND_MACRONIX
+	flash->spi_nand_flag = 0x1;
+	/* Flash powers up read-only, so clear BP# bits */
+	if (idcode[0] == SPI_NAND_MACRONIX &&
+	    idcode[1] == SPI_FLASH_CFI_MFR_MACRONIX)
+		mx_disable_wp(flash);
 
+#else
 	/* Flash powers up read-only, so clear BP# bits */
 	if (idcode[0] == SPI_FLASH_CFI_MFR_ATMEL ||
 	    idcode[0] == SPI_FLASH_CFI_MFR_MACRONIX ||
+	    idcode[0] == SPI_NAND_MACRONIX ||
 	    idcode[0] == SPI_FLASH_CFI_MFR_SST)
 		write_sr(flash, 0);
+#endif
 
 	/* Assign spi data */
 	flash->name = params->name;
@@ -1113,16 +1318,22 @@ int spi_flash_scan(struct spi_flash *flash)
 		flash->read_cmd = CMD_READ_ARRAY_FAST;
 	}
 
+#ifdef CONFIG_SPI_NAND_MACRONIX
+	flash->write_cmd = CMD_SPI_NAND_PAGE_PROGRAM;
+#else
 	/* Not require to look for fastest only two write cmds yet */
-	if (params->flags & WR_QPP && spi->mode & SPI_TX_QUAD)
+	if (params->flags & WR_QPP && spi->mode & SPI_TX_QUAD){
 		flash->write_cmd = CMD_QUAD_PAGE_PROGRAM;
-	else
+	}else{
 		/* Go for default supported write cmd */
 		flash->write_cmd = CMD_PAGE_PROGRAM;
+	}
+#endif
 
 	/* Set the quad enable bit - only for quad commands */
 	if ((flash->read_cmd == CMD_READ_QUAD_OUTPUT_FAST) ||
 	    (flash->read_cmd == CMD_READ_QUAD_IO_FAST) ||
+	    (flash->write_cmd == CMD_SPI_NAND_PAGE_PROGRAM) ||
 	    (flash->write_cmd == CMD_QUAD_PAGE_PROGRAM)) {
 		ret = set_quad_mode(flash, idcode[0]);
 		if (ret) {
@@ -1160,6 +1371,23 @@ int spi_flash_scan(struct spi_flash *flash)
 	ret = spi_flash_read_bar(flash, idcode[0]);
 	if (ret < 0)
 		return ret;
+#endif
+
+#ifdef CONFIG_SPI_NAND_MACRONIX
+	flash->page_size = 2048;
+	flash->page_size <<= flash->shift;
+	flash->sector_size = params->sector_size << flash->shift;
+	flash->size = flash->sector_size * params->nr_sectors << flash->shift;
+	flash->erase_size =  flash->page_size * 64; /* 128k*/
+
+	flash->dummy_byte = 0;
+	flash->erase_cmd = CMD_ERASE_64K;
+	flash->read_cmd = CMD_READ_ARRAY_FAST;
+	/*use the write command don't reset cache*/
+	flash->write_cmd = CMD_SPI_NAND_PAGE_PROGRAM;
+	flash->spi_nand_prefetch_cmd = CMD_READ_PAGE;
+	flash->spi_nand_program_cmd = CMD_PROGRAM_EXECUTE;
+
 #endif
 
 #if CONFIG_IS_ENABLED(OF_CONTROL)

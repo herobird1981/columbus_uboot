@@ -67,6 +67,8 @@
 #define	CQSPI_REG_CONFIG_IDLE_LSB		31
 #define	CQSPI_REG_CONFIG_CHIPSELECT_MASK	0xF
 #define	CQSPI_REG_CONFIG_BAUD_MASK		0xF
+#define CQSPI_REG_CONFIG_REMAP			(1<<16)
+#define CQSPI_REG_CONFIG_DMA_EN			(1<<15)
 
 #define	CQSPI_REG_RD_INSTR			0x04
 #define	CQSPI_REG_RD_INSTR_OPCODE_LSB		0
@@ -82,6 +84,7 @@
 
 #define	CQSPI_REG_WR_INSTR			0x08
 #define	CQSPI_REG_WR_INSTR_OPCODE_LSB		0
+#define CQSPI_REG_WR_INSTR_TYPE_DATA_LSB	16
 
 #define	CQSPI_REG_DELAY				0x0C
 #define	CQSPI_REG_DELAY_TSLCH_LSB		0
@@ -186,8 +189,12 @@ static unsigned int cadence_qspi_apb_cmd2addr(const unsigned char *addr_buf,
 
 	addr = (addr_buf[0] << 16) | (addr_buf[1] << 8) | addr_buf[2];
 
-	if (addr_width == 4)
+	if (addr_width == 4){
 		addr = (addr << 8) | addr_buf[3];
+	} else if (addr_width == 2) {
+		addr = addr>>8;
+	} else if (addr_width==1)
+		addr = addr_buf[0];
 
 	return addr;
 }
@@ -784,8 +791,9 @@ int cadence_qspi_apb_indirect_write_setup(struct cadence_spi_platdata *plat,
 {
 	unsigned int reg;
 	unsigned int addr_bytes = cmdlen > 4 ? 4 : 3;
-
-	if (cmdlen < 4 || cmdbuf == NULL) {
+	if (cmdlen==3)
+		addr_bytes = 2;
+	if (cmdlen < 3 || cmdbuf == NULL) {
 		printf("QSPI: iInvalid input argument, len %d cmdbuf 0x%08x\n",
 		       cmdlen, (unsigned int)cmdbuf);
 		return -EINVAL;
@@ -796,6 +804,9 @@ int cadence_qspi_apb_indirect_write_setup(struct cadence_spi_platdata *plat,
 
 	/* Configure the opcode */
 	reg = cmdbuf[0] << CQSPI_REG_WR_INSTR_OPCODE_LSB;
+	/* Instruction and address at DQ0, data at DQ0-3. */
+//	plat->wmode = 0;/*wmode,rmode: 0 indirect; 1 legacy; 2 direct*/
+	reg |= 0x0 << CQSPI_REG_WR_INSTR_TYPE_DATA_LSB;
 	writel(reg, plat->regbase + CQSPI_REG_WR_INSTR);
 
 	/* Setup write address. */
@@ -885,4 +896,23 @@ void cadence_qspi_apb_enter_xip(void *reg_base, char xip_dummy)
 	reg = readl(reg_base + CQSPI_REG_RD_INSTR);
 	reg |= (1 << CQSPI_REG_RD_INSTR_MODE_EN_LSB);
 	writel(reg, reg_base + CQSPI_REG_RD_INSTR);
+}
+
+void cadence_qspi_set_access_mode(struct cadence_spi_platdata *plat,int mode)
+{
+	unsigned long reg;
+
+	cadence_qspi_apb_controller_disable(plat->regbase);
+	if(mode == QSPI_INDIRECT_MODE)
+	{
+		reg = readl((u32)plat->regbase + CQSPI_REG_CONFIG);
+		reg &= ~(1<<8); /*clear legacy mode*/
+		reg &= ~CQSPI_REG_CONFIG_DIRECT_MASK;
+		reg &= ~CQSPI_REG_CONFIG_REMAP;
+		reg &= ~CQSPI_REG_CONFIG_DMA_EN;
+
+		writel(reg, (u32)plat->regbase + CQSPI_REG_CONFIG);
+		writel(0, (u32)plat->regbase + CQSPI_REG_IRQMASK);
+	}
+	cadence_qspi_apb_controller_enable(plat->regbase);
 }

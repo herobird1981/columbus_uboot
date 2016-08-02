@@ -53,6 +53,10 @@ const struct spi_flash_params spi_flash_params_table[] = {
 	{"MX25L51235F",	   0xc2201a, 0x0,	64 * 1024,  1024, RD_FULL,		     WR_QPP},
 	{"MX25L12855E",	   0xc22618, 0x0,	64 * 1024,   256, RD_FULL,		     WR_QPP},
 #endif
+#ifdef CONFIG_SPI_NAND_MACRONIX
+	{"MX35LF2GE4AB",	   0xffc222, 0x0,	64 * 1024,   2048, RD_FULL,		     WR_QPP},
+	{"MX35LF1GE4AB",	   0xffc212, 0x0,	64 * 1024,   1024, RD_FULL,		     WR_QPP},
+#endif
 #ifdef CONFIG_SPI_FLASH_SPANSION	/* SPANSION */
 	{"S25FL008A",	   0x010213, 0x0,	64 * 1024,    16, RD_NORM,			  0},
 	{"S25FL016A",	   0x010214, 0x0,	64 * 1024,    32, RD_NORM,			  0},

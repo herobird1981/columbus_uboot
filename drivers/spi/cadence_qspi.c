@@ -116,6 +116,8 @@ static int spi_calibration(struct udevice *bus, uint hz)
 	return 0;
 }
 
+
+
 static int cadence_spi_set_speed(struct udevice *bus, uint hz)
 {
 	struct cadence_spi_platdata *plat = bus->platdata;
@@ -161,6 +163,7 @@ static int cadence_spi_probe(struct udevice *bus)
 
 	if (!priv->qspi_is_init) {
 		cadence_qspi_apb_controller_init(plat);
+		cadence_qspi_set_access_mode(plat, QSPI_INDIRECT_MODE);
 		priv->qspi_is_init = 1;
 	}
 

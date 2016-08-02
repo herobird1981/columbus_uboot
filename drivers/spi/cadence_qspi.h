@@ -14,6 +14,8 @@
 #define CQSPI_DECODER_MAX_CS		16
 #define CQSPI_READ_CAPTURE_MAX_DELAY	16
 
+#define QSPI_INDIRECT_MODE	(0)
+
 struct cadence_spi_platdata {
 	unsigned int	max_hz;
 	void		*regbase;

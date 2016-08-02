@@ -161,7 +161,8 @@ static void etx_init_dmabuf(int bytes)
 }
 
 /*dma ddr workaroud*/
-#define dma_virt_to_phy(x)	((((unsigned long)(x)>0x80000000) && ((unsigned long)(x)<0xc0000000))? ((unsigned long)(x)-0x80000000):(unsigned long)(x))
+//#define dma_virt_to_phy(x)	((((unsigned long)(x)>0x80000000) && ((unsigned long)(x)<0xc0000000))? ((unsigned long)(x)-0x80000000):(unsigned long)(x))
+#define dma_virt_to_phy(x)	(x)
 
 /* Initialize DMA, wq and interrupt status for upcoming transfer. */
 static void ext_init_dma(uint64_t addr, int bytes)
@@ -593,7 +594,7 @@ unsigned char etx_read_byte(struct candence_nfc* priv)
 	etx_write(STATUS_MASK_STATE_MASK(0xff), STATUS_MASK_REG);
 	etx_command_and_wait(COMMAND_READ_STATUS, INT_STATUS_DATA_REG_FL);
 	status_value = etx_read(DATA_REG_REG) & 0xff;
-	status_value = 0xC0; /* Bit 7 : No write prot., Bit 6: Device ready */
+	//status_value = 0xC0; /* Bit 7 : No write prot., Bit 6: Device ready */
 	nfc_debug("Status 0x%08x\n", status_value);
 	return status_value;
 }

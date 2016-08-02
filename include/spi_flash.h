@@ -79,6 +79,11 @@ struct spi_flash {
 	u8 bank_write_cmd;
 	u8 bank_curr;
 #endif
+#ifdef CONFIG_SPI_NAND_MACRONIX
+	int spi_nand_flag;
+	u8 spi_nand_prefetch_cmd;
+	u8 spi_nand_program_cmd;
+#endif
 	u8 erase_cmd;
 	u8 read_cmd;
 	u8 write_cmd;

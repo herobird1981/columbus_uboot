@@ -28,11 +28,11 @@
 		interrupt-parent = <&intc>;
 		ranges;
 
-		slcr: slcr@f8000000 {
+		slcr: slcr@2C000000 {
 			#address-cells = <1>;
 			#size-cells = <1>;
 			compatible = "xlnx,zynq-slcr", "syscon", "simple-bus";
-			reg = <0xF8000000 0x1000>;
+			reg = <0x2C000000 0x1000>;
 			ranges;
 
 			clkc: clkc@100 {
@@ -71,17 +71,17 @@
 			};
 		};
 		
-		intc: interrupt-controller@f8f01000 {
+		intc: interrupt-controller@0x2C001000 {
 			compatible = "arm,cortex-a9-gic";
 			#interrupt-cells = <3>;
 			interrupt-controller;
-			reg = <0xF8F01000 0x1000>,
-				<0xF8F00100 0x100>;
+			reg = <0x2C001000 0x1000>,
+				<0x2C001000 0x100>;
 		};
 
-		uart0: serial@0x71D00000 {
+		uart0: serial@0x7BD00000 {
 			compatible = "snps,dw-apb-uart";
-			reg = <0x71D00000 0x400>;
+			reg = <0x7BD00000 0x400>;
 			reg-shift = <2>;
 			reg-io-width = <4>;
 			clock-frequency = <50000000>;
@@ -89,81 +89,81 @@
 			status = "disabled";
 		};
 
-		timer1: timer@0x50001000 {
+		timer1: timer@0x78801000 {
 			compatible = "columbus,timer";
-			reg = <0x50001000 0x28>;
+			reg = <0x78801000 0x28>;
 			clock-frequency = <50000000>;
 			clock-freq = <1000000>;
 			status = "disabled";
 		};
-		timer2: timer@0x50001040 {
+		timer2: timer@0x78801040 {
 			compatible = "columbus,timer";
-			reg = <0x50001040 0x28>;
+			reg = <0x78801040 0x28>;
 			clock-frequency = <50000000>;
 			clock-freq = <50000000>;
 			status = "disabled";
 		};
-		timer3: timer@0x50001080 {
+		timer3: timer@0x78801080 {
 			compatible = "columbus,timer";
-			reg = <0x50001080 0x28>;
+			reg = <0x78801080 0x28>;
 			clock-frequency = <50000000>;
 			clock-freq = <50000000>;
 			status = "disabled";
 		};
-		timer4: timer@0x500010C0 {
+		timer4: timer@0x788010C0 {
 			compatible = "columbus,timer";
-			reg = <0x500010C0 0x28>;
+			reg = <0x788010C0 0x28>;
 			clock-frequency = <50000000>;
 			clock-freq = <50000000>;
 			status = "disabled";
 		};
-		timer5: timer@0x50001100 {
+		timer5: timer@0x78801100 {
 			compatible = "columbus,timer";
-			reg = <0x50001100 0x28>;
+			reg = <0x78801100 0x28>;
 			clock-frequency = <50000000>;
 			clock-freq = <50000000>;
 			status = "disabled";
 		};
-		timer6: timer@0x50001140 {
+		timer6: timer@0x78801140 {
 			compatible = "columbus,timer";
-			reg = <0x50001140 0x28>;
+			reg = <0x78801140 0x28>;
 			clock-frequency = <50000000>;
 			clock-freq = <50000000>;
 			status = "disabled";
 		};
-		timer7: timer@0x50001180 {
+		timer7: timer@0x78801180 {
 			compatible = "columbus,timer";
-			reg = <0x50001180 0x28>;
+			reg = <0x78801180 0x28>;
 			clock-frequency = <50000000>;
 			clock-freq = <50000000>;
 			status = "disabled";
 		};
-		timer8: timer@0x500011C0 {
+		timer8: timer@0x788011C0 {
 			compatible = "columbus,timer";
-			reg = <0x500011C0 0x28>;
+			reg = <0x788011C0 0x28>;
 			clock-frequency = <50000000>;
 			clock-freq = <50000000>;
 			status = "disabled";
 		};
-		global_timer: timer@f8f00200 {
-			compatible = "arm,cortex-a9-global-timer";
-			reg = <0xf8f00200 0x20>;
-			interrupts = <1 11 0x301>;
-			interrupt-parent = <&intc>;
-			clocks = <&clkc 4>;
-		};
+             global_timer: timer@f8f00200 {
+                        compatible = "arm,cortex-a9-global-timer";
+                        reg = <0xf8f00200 0x20>;
+                        interrupts = <1 11 0x301>;
+                        interrupt-parent = <&intc>;
+                        clocks = <&clkc 4>;
+                };		
 
-		nand: nfc@0x71500000 {
+		nand: nfc@0x7B500000 {
 			compatible = "candence,brite_nfc";
-			reg = <0x71500000 0x400>;
+			reg = <0x7B500000 0x400>;
 			clock-frequency = <50000000>;
 		};
-		qspi: spi@0x71D04000 {
+		qspi: spi@0x7BD04000 {
                         compatible = "cadence,qspi";
                         #address-cells = <1>;
                         #size-cells = <0>;
-                        reg = <0x71D04000 0x1000>,
-                                <0x70000000 0x1000>;
+                        reg = <0x7BD04000 0x1000>,
+                                <0x7A000000 0x1000>;
                         interrupts = <0 0 4>;
                         /*clocks = <&qspi_clk>;*/
                         ext-decoder = <0>;  /* external decoder */
@@ -174,19 +174,22 @@
                         bus-num = <0>;
                         status = "disabled";
 
-                        flash0: GD25Q16@0 {
+                        flash0: MX35LF2GE4AB@0 {
                                 #address-cells = <1>;
                                 #size-cells = <1>;
                                 compatible = "spi-flash";
                                 reg = <0>;              /* chip select */
                                 spi-max-frequency = <50000000>;
-                                page-size = <256>;
-                                block-size = <16>;      /* 2^16, 64KB */
+                                page-size = <2048>;
+                                block-size = <128>;      /* 128k */
                                 tshsl-ns = <50>;
                                 tsd2d-ns = <50>;
                                 tchsh-ns = <4>;
                                 tslch-ns = <4>;
                         };
                 };
+
+		
 	};
 };
+
