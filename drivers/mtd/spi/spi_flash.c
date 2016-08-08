@@ -626,11 +626,13 @@ int spi_flash_cmd_read_ops(struct spi_flash *flash, u32 offset,
 {
 	struct spi_slave *spi = flash->spi;
 	u8 *cmd, cmdsz;
-	u32 remain_len, read_len, read_addr;
-	int bank_sel = 0;
+	u32 read_addr;
 	int ret = -1;
 	size_t chunk_len,actual;
 	unsigned long byte_addr;
+	u32 roff;
+	u32 rtotal;
+	u32 rlen;
 
 	/* Handle memory-mapped SPI */
 	if (flash->memory_map) {
@@ -675,10 +677,23 @@ int spi_flash_cmd_read_ops(struct spi_flash *flash, u32 offset,
 				return ret;
 			}
 			cmd[0] = flash->read_cmd;
-			spi_flash_addr(0, cmd);
-			ret = spi_flash_cmd_read(spi, cmd, cmdsz, data, chunk_len);
+			rtotal = chunk_len;
+			rlen = 256;
+			roff = 0;
+			while (rtotal >0) {
+				spi_nand_addr(roff,cmd);
+				ret = spi_flash_cmd_read(spi,cmd,
+					SPI_FLASH_CMD_LEN,
+					data + actual+roff,
+					rlen);
+				if (ret < 0) {
+					debug("SF: read cmd failed\n");
+					return ret;
+				}
+				roff += rlen;
+				rtotal -= rlen;
+			}
 			read_addr += chunk_len;
-			data += chunk_len;
 		}
 	}
 #else

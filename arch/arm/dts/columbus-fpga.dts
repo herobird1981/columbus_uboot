@@ -28,10 +28,6 @@
 
 };
 
-&clkc {
-	ps-clk-frequency = <33333333>;
-};
-
 &timer1 {
 	status = "okay";
 };
@@ -41,5 +37,13 @@
 };
 
 &qspi {
+	status = "okay";
+};
+
+&usb0 {
+	status = "okay";
+};
+
+&mmc0 {
 	status = "okay";
 };

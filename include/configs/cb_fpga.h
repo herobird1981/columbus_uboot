@@ -17,7 +17,8 @@
         "verify=no\0" \
         "usbnet_devaddr=00:00:11:22:33:44\0" \
         "usbnet_hostaddr=00:00:11:22:33:55\0" \
-        "ethaddr=00:00:11:22:33:66\0"
+        "ethaddr=00:00:11:22:33:66\0" \
+        "cdc_connect_timeout=10\0"
 
 #define CONFIG_SERVERIP  192.168.1.100 /*env: serverip*/
 #define CONFIG_IPADDR  192.168.1.200 /*env: ipaddr*/

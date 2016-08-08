@@ -8,10 +8,9 @@
 		#size-cells = <0>;
 
 		cpu@0 {
-			compatible = "arm,cortex-a9";
+			compatible = "arm,cortex-a7";
 			device_type = "cpu";
 			reg = <0>;
-			clocks = <&clkc 3>;
 			clock-latency = <1000>;
 			operating-points = <
 				/* kHz    uV */
@@ -27,32 +26,6 @@
 		#size-cells = <1>;
 		interrupt-parent = <&intc>;
 		ranges;
-
-		slcr: slcr@2C000000 {
-			#address-cells = <1>;
-			#size-cells = <1>;
-			compatible = "xlnx,zynq-slcr", "syscon", "simple-bus";
-			reg = <0x2C000000 0x1000>;
-			ranges;
-
-			clkc: clkc@100 {
-				#clock-cells = <1>;
-				compatible = "xlnx,ps7-clkc";
-				fclk-enable = <0>;
-				clock-output-names = "armpll", "ddrpll", "iopll", "cpu_6or4x",
-					"cpu_3or2x", "cpu_2x", "cpu_1x", "ddr2x", "ddr3x",
-					"dci", "lqspi", "smc", "pcap", "gem0", "gem1",
-					"fclk0", "fclk1", "fclk2", "fclk3", "can0", "can1",
-					"sdio0", "sdio1", "uart0", "uart1", "spi0", "spi1",
-					"dma", "usb0_aper", "usb1_aper", "gem0_aper",
-					"gem1_aper", "sdio0_aper", "sdio1_aper",
-					"spi0_aper", "spi1_aper", "can0_aper", "can1_aper",
-					"i2c0_aper", "i2c1_aper", "uart0_aper", "uart1_aper",
-					"gpio_aper", "lqspi_aper", "smc_aper", "swdt",
-					"dbg_trc", "dbg_apb";
-				reg = <0x100 0x100>;
-		    };
-		};
 
 		clocks {
 			dummy_clk: clock@4 {
@@ -70,13 +43,13 @@
 				clock-frequency = <0>;
 			};
 		};
-		
+
 		intc: interrupt-controller@0x2C001000 {
-			compatible = "arm,cortex-a9-gic";
+			compatible = "arm,cortex-a7-gic";
 			#interrupt-cells = <3>;
 			interrupt-controller;
 			reg = <0x2C001000 0x1000>,
-				<0x2C001000 0x100>;
+				<0x2C002000 0x100>;
 		};
 
 		uart0: serial@0x7BD00000 {
@@ -85,7 +58,7 @@
 			reg-shift = <2>;
 			reg-io-width = <4>;
 			clock-frequency = <50000000>;
-			interrupts = <0 59 4>;
+			interrupts = <0 38 4>;
 			status = "disabled";
 		};
 
@@ -95,12 +68,15 @@
 			clock-frequency = <50000000>;
 			clock-freq = <1000000>;
 			status = "disabled";
+			interrupts = <0 36 4>;
+			interrupt-parent = <&intc>;
 		};
 		timer2: timer@0x78801040 {
 			compatible = "columbus,timer";
 			reg = <0x78801040 0x28>;
 			clock-frequency = <50000000>;
 			clock-freq = <50000000>;
+			interrupts = <0 37 4>;
 			status = "disabled";
 		};
 		timer3: timer@0x78801080 {
@@ -108,6 +84,7 @@
 			reg = <0x78801080 0x28>;
 			clock-frequency = <50000000>;
 			clock-freq = <50000000>;
+			interrupts = <0 37 4>;
 			status = "disabled";
 		};
 		timer4: timer@0x788010C0 {
@@ -115,6 +92,7 @@
 			reg = <0x788010C0 0x28>;
 			clock-frequency = <50000000>;
 			clock-freq = <50000000>;
+			interrupts = <0 37 4>;
 			status = "disabled";
 		};
 		timer5: timer@0x78801100 {
@@ -122,6 +100,7 @@
 			reg = <0x78801100 0x28>;
 			clock-frequency = <50000000>;
 			clock-freq = <50000000>;
+			interrupts = <0 37 4>;
 			status = "disabled";
 		};
 		timer6: timer@0x78801140 {
@@ -129,6 +108,7 @@
 			reg = <0x78801140 0x28>;
 			clock-frequency = <50000000>;
 			clock-freq = <50000000>;
+			interrupts = <0 37 4>;
 			status = "disabled";
 		};
 		timer7: timer@0x78801180 {
@@ -136,6 +116,7 @@
 			reg = <0x78801180 0x28>;
 			clock-frequency = <50000000>;
 			clock-freq = <50000000>;
+			interrupts = <0 37 4>;
 			status = "disabled";
 		};
 		timer8: timer@0x788011C0 {
@@ -143,15 +124,9 @@
 			reg = <0x788011C0 0x28>;
 			clock-frequency = <50000000>;
 			clock-freq = <50000000>;
+			interrupts = <0 37 4>;
 			status = "disabled";
 		};
-             global_timer: timer@f8f00200 {
-                        compatible = "arm,cortex-a9-global-timer";
-                        reg = <0xf8f00200 0x20>;
-                        interrupts = <1 11 0x301>;
-                        interrupt-parent = <&intc>;
-                        clocks = <&clkc 4>;
-                };		
 
 		nand: nfc@0x7B500000 {
 			compatible = "candence,brite_nfc";
@@ -169,8 +144,8 @@
                         ext-decoder = <0>;  /* external decoder */
                         ref-clk = <50000000>;
                         num-cs = <1>;
-                        fifo-depth = <128>;
-                        sram-size = <128>;
+                        fifo-depth = <256>;
+                        sram-size = <256>;
                         bus-num = <0>;
                         status = "disabled";
 
@@ -189,7 +164,21 @@
                         };
                 };
 
-		
+                usb0: usb@0x7B000000 {
+                        compatible = "columbus,musb";
+                        reg = <0x7B000000 0x10000>;
+                        interrupts = <0 36 4>;
+                        interrupt-names = "mc";
+                        dr_mode = "peripheral";
+                        status = "disabled";
+                };
+                mmc0: mmc@0x7B600000 {
+                        compatible = "snps,dw-mshc";
+                        reg = <0x7B600000 0x1000>;
+                        interrupts = <0 36 4>;
+                        clock-frequency=<50000000>;
+		      status = "disabled";
+                };
 	};
 };
 
