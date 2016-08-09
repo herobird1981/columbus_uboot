@@ -47,3 +47,8 @@
 &mmc0 {
 	status = "okay";
 };
+
+&gpio0 {
+	status = "okay";
+};
+

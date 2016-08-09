@@ -177,8 +177,21 @@
                         reg = <0x7B600000 0x1000>;
                         interrupts = <0 36 4>;
                         clock-frequency=<50000000>;
-		      status = "disabled";
+			status = "disabled";
                 };
+		
+		gpio0: gpio@78800000 {
+			#gpio-cells = <2>;
+			compatible = "brite-gpio-1.0";
+			//clocks = <&clkc 42>;
+			gpio-controller;
+			interrupt-parent = <&intc>;
+			interrupts = <0 37 4>;
+			reg = <0x78800000 0x1000 0x78804800 0x800>;
+			debounce-enable = <0x0 0x0 0x0 0x0>;
+			debounce-filterglitch = <0x0 0x0 0x0 0x0>;
+			status = "disabled";
+		}; 
 	};
 };
 
