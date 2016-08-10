@@ -21,14 +21,24 @@
 
 	chosen {
 		stdout-path = &uart0;
-		tick-timer = &timer1;
+		tick-timer = &timer2;
 		bootargs = "console=ttyS0,115200 earlyprintk rdinit=/init clk_ignore_unused";
 	};
 
 
 };
 
-&timer1 {
+&dma0 {
+       status = "okay";
+};
+&dma1 {
+       status = "okay";
+};
+&dma2 {
+       status = "okay";
+};
+
+&timer2 {
 	status = "okay";
 };
 
@@ -48,7 +58,14 @@
 	status = "okay";
 };
 
-&gpio0 {
+&wdt {
 	status = "okay";
 };
 
+&gpio0 {
+       status = "disabled";
+};
+
+&rtc0 {
+       status = "okay";
+};

@@ -146,6 +146,7 @@ static void etx_command_and_wait(uint32_t etx_command, uint32_t int_state)
 			read_int_status,
 			dma_status,
 			etx_command);
+	etx_write(0, INT_STATUS_REG);//0x14
 }
 
 static void etx_init_siu_fifo(int bytes)
@@ -405,151 +406,6 @@ static void etx_block_erase(int page)
 	 * The err bit probably just indicates that the flash didn't pull
 	 * R/_B low within tWB. */
 }
-void etx_nand_command(struct candence_nfc* priv, unsigned int command,
-	int column, int page_addr)
-{
-	/* Save command so that other parts of the API can figure out
-	 * what's actually going on. */
-	priv->cmd_cache.command = command;
-
-	/* Configure the NFC for the flash chip in question. */
-	etx_config(&priv->config, priv);
-
-	/* Some commands we execute immediately, while some need to be
-	 * deferred until we have all the data needed, i.e. for page read,
-	 * we can't initiate the read until we know if we are going to be
-	 * using raw mode or not.
-	 */
-	switch (command) {
-	case NAND_CMD_READ0:
-		nfc_debug("READ0 page %d, column %d\n", page_addr, column);
-		if (priv->setup.ecc_mode == NFC_ECC_HW) {
-			/* We do not yet know if the caller wants to
-			   * read the page with or without ECC, so we
-			   * just store the page number and main/oob flag
-			   * here.
-			   * TODO: Since the page number arrives via the
-			   * read_page call, we don't really need to
-			   * store it.
-			*/
-			priv->cmd_cache.page = page_addr;
-			priv->cmd_cache.column = column;
-		} else {
-			/* Read the whole page including oob */
-			priv->cmd_cache.oob_required = 1;
-			etx_read_mode(priv, page_addr, column, ETX_READ_ALL);
-		}
-		break;
-	case NAND_CMD_READOOB:
-		nfc_debug("READOOB page %d, column %d\n", page_addr, column);
-
-		if (priv->use_mode == NFC_SIU_FIFO) {
-			etx_read_mode(priv, page_addr, column, ETX_READ_OOB);
-		} else if (priv->use_mode == NFC_INTERNAL_DMA) {
-		  	/* In contrast to READ0, where nand_base always calls
-			   * a read_page_foo function before reading the data,
-			   * for READOOB, read_buf is called instead.
-			   * We don't want the actual read in read_buf, so
-			   * we put it here. 
-			*/
-			etx_read_mode(priv, page_addr, column, ETX_READ_OOB);
-		}
-
-		break;
-	case NAND_CMD_ERASE1:
-		nfc_debug("ERASE1 page %d\n", page_addr);
-		/* Just grab page parameter, wait until ERASE2 to do
-		 * something.
-		*/
-		priv->cmd_cache.page = page_addr;
-		break;
-	case NAND_CMD_ERASE2:
-		nfc_debug("ERASE2 page %d, do it\n", priv->cmd_cache.page);
-		/* Off we go! */
-		etx_block_erase(priv->cmd_cache.page);
-		break;
-	case NAND_CMD_RESET:
-		nfc_debug("chip reset\n");
-		etx_command_and_wait(COMMAND_RESET, INT_STATUS_CMD_END_INT_FL);
-		break;
-	case NAND_CMD_SEQIN:
-		nfc_debug("SEQIN column %d, page %d\n", column, page_addr);
-		/* Just grab some parameters, then wait until
-		 * PAGEPROG to do the actual operation. 
-		 */
-		priv->cmd_cache.page = page_addr;
-		priv->cmd_cache.column = column;
-		/* Prepare DMA buffer for data. We don't yet know
-		 * how much data there is, so set size to max.
-		 */
-		etx_init_dmabuf(DMA_BUF_SIZE);
-		break;
-	case NAND_CMD_PAGEPROG:
-		/* Used for both main area and oob */
-		nfc_debug("PAGEPROG page %d, column %d, w/oob %d, raw %d\n",
-			priv->cmd_cache.page,
-			priv->cmd_cache.column,
-			priv->cmd_cache.oob_required,
-			priv->cmd_cache.write_raw);
-
-		etx_write_mode(priv,
-			priv->cmd_cache.page,
-			priv->cmd_cache.column,
-			priv->cmd_cache.oob_required,
-			priv->cmd_cache.write_raw);
-		break;
-	case NAND_CMD_READID:
-		nfc_debug("READID (0x%02x)\n", column);
-
-		/* Read specified ID bytes */
-		/* 0x00 would be NAND_READ_ID_ADDR_STD
-		* 0x20 would be NAND_READ_ID_ADDR_ONFI,
-		* but NAND subsystem knows this and sends us the
-		* address values directly 
-		*/
-		etx_write(column, ADDR0_COL_REG);
-
-		if (priv->use_mode == NFC_SIU_FIFO) {
-			etx_init_siu_fifo(column == NAND_READ_ID_ADDR_STD ? 5 :
-				4);
-			etx_init_dmabuf(column == NAND_READ_ID_ADDR_STD ? 5 :
-				4);
-			etx_command_and_wait(COMMAND_READ_ID_SIU_FIFO,
-				INT_STATUS_MEM0_RDY_INT_FL);
-			int i;
-			u32 val;
-			for (i=0;i<p_nfc->dma.bytes_left;i+=4) {
-				val = etx_read_fifo(priv);
-				memcpy(priv->dma.ptr+i,&val,4);
-			}
-		} else if (priv->use_mode == NFC_INTERNAL_DMA) {
-			etx_write(0x3, DATA_REG_SIZE_REG);
-			/* Set up expected number of returned bytes */
-			etx_init_dmabuf(column == NAND_READ_ID_ADDR_STD ? 5 :
-				4);
-			ext_init_dma(priv->dma.phys,
-				column == NAND_READ_ID_ADDR_STD ? 5 : 4);
-			etx_write((p_nfc->dma.bytes_left + 3) & 0xfffffffc,
-				DATA_SIZE_REG);
-			/* Send read id command */
-			etx_command_and_wait(COMMAND_READ_ID,
-				INT_STATUS_DMA_INT_FL);
-		}
-		break;
-	case NAND_CMD_STATUS:
-		nfc_debug("STATUS, defer to later read byte\n");
-		/* Don't do anything now, wait until we need to
-		 * actually read status. 
-		 */
-		break;
-	default:
-		debug("Unhandled command 0x%02x (col %d, page addr %d)\n",
-			command,
-			column,
-			page_addr);
-		break;
-	}
-}
 
 /* 
 Read byte from DMA buffer
@@ -565,15 +421,6 @@ static uint8_t etx_read_dmabuf_byte(struct candence_nfc* priv)
 	}
 }
 
-static u16 etx_read_dmabuf_word(struct candence_nfc* priv)
-{
-	if (priv->dma.bytes_left) {
-		priv->dma.bytes_left--;
-		return *priv->dma.ptr++;
-	} else {
-		return 0; /* no data */
-	}
-}
 
 unsigned char etx_read_byte(struct candence_nfc* priv)
 {
@@ -595,30 +442,6 @@ unsigned char etx_read_byte(struct candence_nfc* priv)
 	etx_command_and_wait(COMMAND_READ_STATUS, INT_STATUS_DATA_REG_FL);
 	status_value = etx_read(DATA_REG_REG) & 0xff;
 	//status_value = 0xC0; /* Bit 7 : No write prot., Bit 6: Device ready */
-	nfc_debug("Status 0x%08x\n", status_value);
-	return status_value;
-}
-
-unsigned short etx_read_word(struct candence_nfc* priv)
-{
-	uint8_t status_value;
-
-	if (priv->cmd_cache.command != NAND_CMD_STATUS) {
-		return etx_read_dmabuf_word(priv);
-	}
-
-	nfc_debug("Read status\n");
-
-	/* In order to read status, we need to send a READ_STATUS command
-	 * to the NFC first, in order to get the data into the DATA_REG */
-	/* Transfer to DATA_REG register */
-	etx_write(DATA_REG_SIZE_DATA_REG_SIZE(1), DATA_REG_SIZE_REG);
-
-	/* We want to read all status bits from the device */
-	etx_write(STATUS_MASK_STATE_MASK(0xff), STATUS_MASK_REG);
-	etx_command_and_wait(COMMAND_READ_STATUS, INT_STATUS_DATA_REG_FL);
-	status_value = etx_read(DATA_REG_REG) & 0xff;
-	status_value = 0xC0; /* Bit 7 : No write prot., Bit 6: Device ready */
 	nfc_debug("Status 0x%08x\n", status_value);
 	return status_value;
 }
@@ -809,6 +632,152 @@ int etx_write_page_raw(struct candence_nfc* priv, const uint8_t* buf,
 	}
 
 	return 0;
+}
+
+void etx_nand_command(struct candence_nfc* priv, unsigned int command,
+	int column, int page_addr)
+{
+	/* Save command so that other parts of the API can figure out
+	 * what's actually going on. */
+	priv->cmd_cache.command = command;
+
+	/* Configure the NFC for the flash chip in question. */
+	etx_config(&priv->config, priv);
+
+	/* Some commands we execute immediately, while some need to be
+	 * deferred until we have all the data needed, i.e. for page read,
+	 * we can't initiate the read until we know if we are going to be
+	 * using raw mode or not.
+	 */
+	switch (command) {
+	case NAND_CMD_READ0:
+		nfc_debug("READ0 page %d, column %d\n", page_addr, column);
+		if (priv->setup.ecc_mode == NFC_ECC_HW) {
+			/* We do not yet know if the caller wants to
+			   * read the page with or without ECC, so we
+			   * just store the page number and main/oob flag
+			   * here.
+			   * TODO: Since the page number arrives via the
+			   * read_page call, we don't really need to
+			   * store it.
+			*/
+			priv->cmd_cache.page = page_addr;
+			priv->cmd_cache.column = column;
+		} else {
+			/* Read the whole page including oob */
+			priv->cmd_cache.oob_required = 1;
+			etx_read_mode(priv, page_addr, column, ETX_READ_ALL);
+		}
+		break;
+	case NAND_CMD_READOOB:
+		nfc_debug("READOOB page %d, column %d\n", page_addr, column);
+
+		if (priv->use_mode == NFC_SIU_FIFO) {
+			etx_read_mode(priv, page_addr, column, ETX_READ_OOB);
+		} else if (priv->use_mode == NFC_INTERNAL_DMA) {
+			/* In contrast to READ0, where nand_base always calls
+			   * a read_page_foo function before reading the data,
+			   * for READOOB, read_buf is called instead.
+			   * We don't want the actual read in read_buf, so
+			   * we put it here.
+			*/
+			etx_read_mode(priv, page_addr, column, ETX_READ_OOB);
+		}
+
+		break;
+	case NAND_CMD_ERASE1:
+		nfc_debug("ERASE1 page %d\n", page_addr);
+		/* Just grab page parameter, wait until ERASE2 to do
+		 * something.
+		*/
+		priv->cmd_cache.page = page_addr;
+		break;
+	case NAND_CMD_ERASE2:
+		nfc_debug("ERASE2 page %d, do it\n", priv->cmd_cache.page);
+		/* Off we go! */
+		etx_block_erase(priv->cmd_cache.page);
+		break;
+	case NAND_CMD_RESET:
+		nfc_debug("chip reset\n");
+		etx_command_and_wait(COMMAND_RESET, INT_STATUS_CMD_END_INT_FL);
+		break;
+	case NAND_CMD_SEQIN:
+		nfc_debug("SEQIN column %d, page %d\n", column, page_addr);
+		/* Just grab some parameters, then wait until
+		 * PAGEPROG to do the actual operation.
+		 */
+		priv->cmd_cache.page = page_addr;
+		priv->cmd_cache.column = column;
+		/* Prepare DMA buffer for data. We don't yet know
+		 * how much data there is, so set size to max.
+		 */
+		etx_init_dmabuf(DMA_BUF_SIZE);
+		break;
+	case NAND_CMD_PAGEPROG:
+		/* Used for both main area and oob */
+		nfc_debug("PAGEPROG page %d, column %d, w/oob %d, raw %d\n",
+			priv->cmd_cache.page,
+			priv->cmd_cache.column,
+			priv->cmd_cache.oob_required,
+			priv->cmd_cache.write_raw);
+
+		etx_write_mode(priv,
+			priv->cmd_cache.page,
+			priv->cmd_cache.column,
+			priv->cmd_cache.oob_required,
+			priv->cmd_cache.write_raw);
+		break;
+	case NAND_CMD_READID:
+		nfc_debug("READID (0x%02x)\n", column);
+
+		/* Read specified ID bytes */
+		/* 0x00 would be NAND_READ_ID_ADDR_STD
+		* 0x20 would be NAND_READ_ID_ADDR_ONFI,
+		* but NAND subsystem knows this and sends us the
+		* address values directly
+		*/
+		etx_write(column, ADDR0_COL_REG);
+
+		if (priv->use_mode == NFC_SIU_FIFO) {
+			etx_init_siu_fifo(column == NAND_READ_ID_ADDR_STD ? 5 :
+				4);
+			etx_init_dmabuf(column == NAND_READ_ID_ADDR_STD ? 5 :
+				4);
+			etx_command_and_wait(COMMAND_READ_ID_SIU_FIFO,
+				INT_STATUS_MEM0_RDY_INT_FL);
+			int i;
+			u32 val;
+			for (i=0;i<p_nfc->dma.bytes_left;i+=4) {
+				val = etx_read_fifo(priv);
+				memcpy(priv->dma.ptr+i,&val,4);
+			}
+		} else if (priv->use_mode == NFC_INTERNAL_DMA) {
+			etx_write(0x3, DATA_REG_SIZE_REG);
+			/* Set up expected number of returned bytes */
+			etx_init_dmabuf(column == NAND_READ_ID_ADDR_STD ? 5 :
+				4);
+			ext_init_dma(priv->dma.phys,
+				column == NAND_READ_ID_ADDR_STD ? 5 : 4);
+			etx_write((p_nfc->dma.bytes_left + 3) & 0xfffffffc,
+				DATA_SIZE_REG);
+			/* Send read id command */
+			etx_command_and_wait(COMMAND_READ_ID,
+				INT_STATUS_DMA_INT_FL);
+		}
+		break;
+	case NAND_CMD_STATUS:
+		nfc_debug("STATUS, defer to later read byte\n");
+		/* Don't do anything now, wait until we need to
+		 * actually read status.
+		 */
+		break;
+	default:
+		debug("Unhandled command 0x%02x (col %d, page addr %d)\n",
+			command,
+			column,
+			page_addr);
+		break;
+	}
 }
 
 static int etx_init_resources(struct candence_nfc* priv)

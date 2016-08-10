@@ -52,7 +52,55 @@
 				<0x2C002000 0x100>;
 		};
 
-		uart0: serial@0x7BD00000 {
+		dma0: dma@0x7B200000 {
+                        compatible = "snps,dma-columbus";
+                        reg = <0x7B200000 0x1000>;
+                        interrupts = <0 36 0x4>;
+                        status = "disabled";
+
+                        dma-channels = <8>;
+                        #dma-cells = <3>;
+                        dma-requests = <16>;
+                        chan_allocation_order = <1>;
+                        chan_priority = <1>;
+                        block_size = <0xfff>;
+                        dma-masters = <2>;
+                        data_width = <3 3>;
+                };
+
+                dma1: dma@0x7B300000 {
+                        compatible = "snps,dma-columbus";
+                        reg = <0x7B300000 0x1000>;
+                        interrupts = <0 36 0x4>;
+                        status = "disabled";
+
+                        dma-channels = <8>;
+                        #dma-cells = <3>;
+                        dma-requests = <16>;
+                        chan_allocation_order = <1>;
+                        chan_priority = <1>;
+                        block_size = <0xfff>;
+                        dma-masters = <2>;
+                        data_width = <3 3>;
+                };
+
+                dma2: dma@0x7B400000 {
+                        compatible = "snps,dma-columbus";
+                        reg = <0x7B400000 0x1000>;
+                        interrupts = <0 36 0x4>;
+                        status = "disabled";
+
+                        dma-channels = <8>;
+                        #dma-cells = <3>;
+                        dma-requests = <16>;
+                        chan_allocation_order = <1>;
+                        chan_priority = <1>;
+                        block_size = <0xfff>;
+                        dma-masters = <2>;
+                        data_width = <3 3>;
+                };
+
+  		uart0: serial@0x7BD00000 {
 			compatible = "snps,dw-apb-uart";
 			reg = <0x7BD00000 0x400>;
 			reg-shift = <2>;
@@ -132,6 +180,11 @@
 			compatible = "candence,brite_nfc";
 			reg = <0x7B500000 0x400>;
 			clock-frequency = <50000000>;
+			interrupts = <0 36 4>;
+			nand-ecc-strength = <8>;
+			nand-ecc-step-size = <512>;
+			nand-ecc-mode  = <2>;
+			nand-on-flash-bbt = <128>;
 		};
 		qspi: spi@0x7BD04000 {
                         compatible = "cadence,qspi";
@@ -173,25 +226,46 @@
                         status = "disabled";
                 };
                 mmc0: mmc@0x7B600000 {
-                        compatible = "snps,dw-mshc";
+                        compatible = "columbus,dw-mshc";
                         reg = <0x7B600000 0x1000>;
                         interrupts = <0 36 4>;
                         clock-frequency=<50000000>;
-			status = "disabled";
+                        fifo-depth=<512>;
+		      status = "disabled";
                 };
-		
-		gpio0: gpio@78800000 {
-			#gpio-cells = <2>;
-			compatible = "brite-gpio-1.0";
-			//clocks = <&clkc 42>;
-			gpio-controller;
-			interrupt-parent = <&intc>;
-			interrupts = <0 37 4>;
-			reg = <0x78800000 0x1000 0x78804800 0x800>;
-			debounce-enable = <0x0 0x0 0x0 0x0>;
-			debounce-filterglitch = <0x0 0x0 0x0 0x0>;
-			status = "disabled";
-		}; 
+
+                wdt: watchdog@0x78802000 {
+                        compatible = "columbus,wdt";
+		      reg = <0x78802000 0x100>;
+		      interrupts = <0 36 4>;
+                        timeout-sec = <10>;
+                       /* reset-on-timeout = "true";*/
+                        clock-frequency=<50000000>;
+                        div=<0x00>;  /*default 1/2*/
+                        interrupt-timeout=<0>; /*64k clk counter*/
+                        reset-pulse-lengh=<0x10000>;
+                        status = "disabled";
+                };
+
+                gpio0: gpio@78800000 {
+                       #gpio-cells = <2>;
+                       compatible = "brite-gpio-1.0";
+                       //clocks = <&clkc 42>;
+                       gpio-controller;
+                       interrupt-parent = <&intc>;
+                       interrupts = <0 37 4>;
+                       reg = <0x78800000 0x1000 0x78804800 0x800>;
+                       debounce-enable = <0x0 0x0 0x0 0x0>;
+                       debounce-filterglitch = <0x0 0x0 0x0 0x0>;
+                       status = "disabled";
+               };
+
+               rtc0: rtc@0x79100000 {
+                                compatible = "brite,rtc";
+                                reg = <0x79100000 0x1000>;
+                                interrupts = <0 38 0x4>;
+                                status = "disabled";
+               };
 	};
 };
 
